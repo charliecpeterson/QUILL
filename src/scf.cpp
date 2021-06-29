@@ -3,13 +3,17 @@
 #include <sstream>
 #include <string>
 #include <math.h>
+#include "scf.h"
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 using namespace std;
 using namespace Eigen;
 using std::sqrt;
-#define INDEX(i,j) i>j ? i*(i+1)/2 + j : j*(j+1)/2 + i
+int INDEX(int i,int j) {
+    if (i>j) return i*(i+1)/2 + j;
+    return j*(j+1)/2 + i;
+}
 #define MAX_ITER 75
 #define EDIFF_CONV 0.000000000002
 #define RMS_CONV 0.000000000014
@@ -23,11 +27,25 @@ double rmsDensity(MatrixXd A, MatrixXd B, int mat_size){
     return pow(result,0.5);
 }
 
-int main() {
-    cout << "Welcome to my Awesome and simple SCF program" << endl;
+void run_scf() {
 //creating variables/objects
-    int num_basisf = 7;
-    int occ = 5;
+// Reading input
+    string SCF_options[1] = {"num_elec"};
+    ifstream input ("INPUT");
+    string newline,temp_str;
+    int occ = 0;
+    while(getline(input,newline)){
+        istringstream ss(newline);
+        ss >> temp_str;
+        if (temp_str == "num_elec") {
+            ss >> occ;
+            occ /= 2;
+        }
+    }
+    
+    ifstream numffile ("../mol/num_nao.dat");
+    int num_basisf ;
+    numffile >> num_basisf;
     int mat_length = num_basisf * (num_basisf + 1) / 2 ;
     int total_mat_length = num_basisf * num_basisf;
     double enuc, rms, Ediff;
@@ -45,7 +63,7 @@ int main() {
     MatrixXd DX(num_basisf,num_basisf);
     MatrixXd FX_org(num_basisf,num_basisf);
     MatrixXd FC_org(num_basisf,num_basisf);
-    VectorXd eri_array(1000); 
+    VectorXd eri_array(num_basisf*num_basisf*num_basisf*num_basisf); 
 
  // Reading variables
  // Nuclear repulsion energy: enuc.dat --> enuc
@@ -54,17 +72,16 @@ int main() {
  // AO Overlap: s.dat --> s_array
  // Core Hamiltonian: hcore
 
- // Reading enuc 
-    ifstream enucfile ("data/enuc.dat");
-    enucfile >> enuc;
 
+ // Reading enuc 
+    ifstream enucfile ("../mol/enuc.dat");
+    enucfile >> enuc;
 //  Reading One-Electron Inegrals
 
 
-    ifstream tfile ("data/t.dat");
-    ifstream vfile ("data/v.dat");
-    ifstream sfile ("data/s.dat");
-    string newline;
+    ifstream tfile ("../mol/t.dat");
+    ifstream vfile ("../mol/v.dat");
+    ifstream sfile ("../mol/s.dat");
     while(getline(tfile, newline)){
         int i,j;
         double temp_t; 
@@ -96,7 +113,7 @@ int main() {
 
 //  Read Two Electron repulsion data
 //  eri.dat > eri_array
-    ifstream erifile ("data/eri.dat");
+    ifstream erifile ("../mol/eri.dat");
     while(getline(erifile, newline)){
         int i, j, ij, k, l, kl, ijkl;
         double temp_eri; 
@@ -106,7 +123,6 @@ int main() {
         kl = INDEX(k,l);
         ijkl = INDEX(ij,kl);
         eri_array(ijkl) = temp_eri;
-
     }
 
 //  Orthogonlization matrix
@@ -135,10 +151,12 @@ int main() {
     eC = eX = e0;
     cout << setw(10) << "Iter";
     cout << setw(25)<< setprecision(15) << "E(elec)";
+    cout << setw(25)<< setprecision(15) << "E(Total)";
     cout <<setw(25) << setprecision(15) << "D(E)" ;
     cout << setw(25) << setprecision(15) << "RMS(D)" << endl;
     cout << setw(10) << "0";
     cout << setw(25)<< setprecision(15) << eC;
+    cout << setw(25)<< setprecision(15) << eC + enuc;
     cout <<setw(25) << setprecision(15) << "0.00";
     cout << setw(25) << setprecision(15) << "0.00" << endl;
 // enter into SCF loop
@@ -187,6 +205,7 @@ for (int iter = 1 ; iter <= MAX_ITER; iter++){
     rms = rmsDensity(DC,DX,num_basisf);
     cout << setw(10) << iter;
     cout << setw(25)<< setprecision(15) << eC;
+    cout << setw(25)<< setprecision(15) << eC + enuc;
     cout <<setw(25) << setprecision(15) << Ediff;
     cout << setw(25) << setprecision(15) << rms << endl;
 
@@ -201,8 +220,6 @@ for (int iter = 1 ; iter <= MAX_ITER; iter++){
     DX = DC;
 
 } //end of SCF Loop
-    cout << "Thank you for using this SCF program" << endl;
-    return 0;
 } 
 
 

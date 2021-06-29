@@ -1,0 +1,276 @@
+#include "int.h"
+#include "inp.h"
+#include "geo.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+extern "C"{
+#include "cint.h"
+#include "cint_funcs.h"
+
+int cint1e_kin_sph(double  *buf, int *shls,
+                   int *atm, int natm, int *bas, int nbas, double *env);
+
+}
+using namespace::std;
+
+
+void create_int()
+{
+
+    
+    string ATOM_LIST[10] = {"H","He","Li","Be","B","C","N","O","F","Ne"};
+    string ANG_LIST[7] = {"S", "P", "D", "F", "G", "H", "I"};
+    ifstream molfile("../mol/mol");
+    
+    string newline;
+    int natm,off;
+    getline(molfile,newline);
+    stringstream ss(newline);
+    ss >> natm;
+    int nbas = 7;
+    int atm [ natm * ATM_SLOTS];
+    int atoms [natm];
+    double x[natm];
+    double y[natm];
+    double z[natm];
+    int bas [ nbas * BAS_SLOTS];
+    double env [ 10000];
+  //  off = PTR_ENV_START;
+    off =0;
+    //Reading mol file
+    for(int i =0; i < natm; i++){
+        getline(molfile,newline);
+        stringstream ss(newline);
+    	ss >>  atm(CHARGE_OF,i) >> env[off] >> env[off+1] >> env[off+2];
+        atm(PTR_COORD,i)=off;
+        atm[i*6+2]=2;
+        atm[i*6+3]=off;
+        atm[i*6+4]=atm[i*6+5]=0;
+        off+=3;
+    }
+    molfile.close();
+    //Reading in basis
+    /*
+    string atom_str, ang_str;
+    int top_fun_pos;
+    int num_prim,num_funt=0;
+    bool bool_line = true;
+    string temp_prim, temp_cont;
+    string temp_str;
+    for (int i=0 ; i < natm; i++){
+        ifstream basisfile("INPUT");
+        getline(basisfile,newline);
+        while(getline(basisfile,newline)){ // per atom
+            stringstream ss(newline);
+            ss >> atom_str >> ang_str;
+            if (con_atom2Z(atom_str) == atm(CHARGE_OF,i)){
+                top_fun_pos = basisfile.tellg();
+                num_prim= 0;
+                getline(basisfile,newline); stringstream ss(newline);
+                ss >> temp_str;
+                bool_line=true;
+                while(! is_in_array(temp_str,ATOM_LIST,10) && bool_line ){
+                    bool_line = getline(basisfile,newline);
+                    stringstream ss(newline);
+                    num_prim++;
+                    ss >> temp_str;
+                }
+                basisfile.seekg(top_fun_pos);
+                for (int j =0 ; j < num_prim ; j++){
+                    getline(basisfile,newline); stringstream ss(newline);
+                    num_cont = get_num_words_line(newline);
+                    ss >> temp_prim;
+                    env[off+num_prim] = temp_prim;
+                    for(int = k ; k < num_cont; k++){
+                        ss >> temp_cont;
+                        env[off+num_fun+j+num_prim] = temp_cont *CINTgto_norm(con_ang2int(ang_str,env[off+num_prim]));
+                    }
+                }
+            }
+        } // end of while
+    }
+    */
+    env[off]=0.1307093214E+03;
+    env[off+1]=0.2380886605E+02;
+    env[off+2]=0.6443608313E+01;
+    env[off+3]=0.1543289673E+00*CINTgto_norm(0,env[off+0]);
+    env[off+4]=0.5353281423E+00*CINTgto_norm(0,env[off+1]);
+    env[off+5]=0.4446345422E+00*CINTgto_norm(0,env[off+2]);
+    env[off+6]=0.5033151319E+01;
+    env[off+7]=0.1169596125E+01;
+    env[off+8]=0.3803889600E+00;
+    env[off+9]=-0.9996722919E-01*CINTgto_norm(0,env[off+6]);
+    env[off+10]=0.3995128261E+00*CINTgto_norm(0,env[off+7]);
+    env[off+11]=0.7001154689E+00*CINTgto_norm(0,env[off+8]);
+    env[off+12]=0.5033151319E+01;
+    env[off+13]=0.1169596125E+01;
+    env[off+14]=0.3803889600E+00;
+    env[off+15]=0.1559162750E+00*CINTgto_norm(1,env[off+12]);
+    env[off+16]=0.6076837186E+00*CINTgto_norm(1,env[off+13]);
+    env[off+17]=0.3919573931E+00*CINTgto_norm(1,env[off+14]);
+    env[off+18]=0.3425250914E+01;
+    env[off+19]=0.6239137298E+00;
+    env[off+20]=0.1688554040E+00;
+    env[off+21]=0.1543289673E+00*CINTgto_norm(1,env[off+18]);
+    env[off+22]=0.5353281423E+00*CINTgto_norm(1,env[off+19]);
+    env[off+23]=0.4446345422E+00*CINTgto_norm(1,env[off+20]);
+
+    int num_func[] = {3,1,1};
+    int func_ang[] = {0,0,1,1,1,0,0};
+    int tot_num_prim[] = {3,3,3,3,3,3,3};
+    int num_cont[] = {1,1,1,1,1,1,1};
+    int env_start[] = {0,18};
+    int atom_basis_list[] = {0,1,1};
+    int iter_nbas =0;
+    int env_temp =0;
+    int number_of_ang[] = {1,3,5};
+
+    for (int i =0; i < natm; i++){
+        for (int j =0 ; j < num_func[i];j++){
+            env_temp=env_start[atom_basis_list[i]];
+            for (int k = 0 ; k < number_of_ang[func_ang[iter_nbas]]; k++){
+                bas[iter_nbas*8] = i;
+                bas[iter_nbas*8+1] = func_ang[iter_nbas];
+                bas[iter_nbas*8+2] = tot_num_prim[iter_nbas];
+                bas[iter_nbas*8+3] = num_cont[iter_nbas];
+                bas[iter_nbas*8+4] = 0;
+                bas[iter_nbas*8+5] = off+env_temp;
+                env_temp += tot_num_prim[iter_nbas];
+                cout << env_temp << "ENV" << endl;
+                bas[iter_nbas*8+6] = off+env_temp;
+                env_temp += num_cont[iter_nbas]*tot_num_prim[iter_nbas];
+                bas[iter_nbas*8+7] = 0;
+                iter_nbas++;
+            }
+        }
+    } 
+    cout << iter_nbas << " NBAS" << endl;
+    double *buf;
+    int shls[2];
+    int off_i, off_j,di,dj=0;
+    double V [7][7];
+    for(int a=0; a < iter_nbas *8; a++){
+        cout << bas[a] << endl;
+    }
+    cout << "HI" << endl;
+    size_t offset_j=0;
+    for(int j=0;j<nbas;j++)
+    {
+        size_t offset_i=0;
+        size_t di,dj;
+        for(int i=0;i<nbas;i++)
+        {
+                shls[0] = i; di = CINTcgto_spheric(i, bas);
+                shls[1] = j; dj = CINTcgto_spheric(j, bas);
+                buf = (double*)malloc(sizeof(double)*di*dj);
+                cint1e_kin_sph(buf,shls,atm,natm,bas,nbas,env);
+            for(int jbf=0;jbf<dj;jbf++)
+            {
+                for(int ibf=0;ibf<di;ibf++)
+                   // _kinect[index_2d_to_1d(offset_i+ibf,offset_j+jbf)]=buff[jbf*di+ibf];
+                    V[offset_i+ibf][offset_j+jbf]=buf[jbf*di+ibf];
+            }
+            free(buf);
+            buf=NULL;
+            offset_i+=di;
+        }
+        offset_j+=dj;
+    }
+    for(int a=0; a < iter_nbas; a++){
+        for(int b=0; b < iter_nbas;b++)
+        cout << V[a][b] << endl;
+    }
+
+/*
+    getline(basisfile,newline);
+    // getting num of functions
+    int num_prim, num_cont;
+    string tmp, atom_string, ang_string;
+    int top_pos,prev_pos, iter_atom,n =0;
+    bool bool_line = true;
+    while(getline(basisfile,newline)){
+        string temp_str;
+        stringstream ss(newline);
+        ss >> temp_str;
+        if(is_in_array(temp_str,ATOM_LIST,10)){
+            top_pos basisfile.tellg();
+            num_prim =0;
+            ss >> atom_string >> ang_string;
+            while(! is_in_array(atom_string,ATOM_LIST,10) && bool_line ){
+                prev_pos = basisfile.tellg();
+                bool_line = getline(basisfile,newline);
+                stringstream ss(newline);
+                ss >> tmp ;
+                num_prim++;
+            }
+            num_prim--;
+            prev_pos--;
+            basisfile.seekg(prev_pos);
+            getline(basisfile,newline);
+            stringstream ss(newline);
+            ss >> temp_str;
+            num_cont = get_num_words_line(newline);
+            bas[ATOM_OF  +BAS_SLOTS*n] = iter_atom;
+            bas[ANG_OF   +BAS_SLOTS*n] = con_ang2int(ang_string);
+            bas[NPRIM_OF +BAS_SLOTS*n] = num_prim;
+            bas[NCTR_OF  +BAS_SLOTS*n] = num_cont;
+            bas[PTR_EXP  +BAS_SLOTS*n] = off;
+            bas[PTR_COEFF+BAS_SLOTS*n] = off+num_prim;
+            n++; 
+
+        }else {
+            cout << "Error reading basis set\nExiting..." << endl;
+            exit(1);
+        }
+
+    }
+*/
+
+/*
+///// TESTING
+        int natm = 8;
+        int nbas = natm*20;
+        // ATM_SLOTS = 6; BAS_SLOTS = 8;
+        int *atm = [ natm * 6];
+        int *bas = malloc(sizeof(int) * nbas * 8);
+        double *env = malloc(sizeof(double) * 10000);
+        int off = PTR_ENV_START; // = 20
+
+         env[off+0 ] = 3047.5249; env[off+6 ] = 0.0018347*CINTgto_norm(0,env[off+0 ]);
+///// END OF TEST
+*/
+}
+
+int get_num_words_line(string str){
+    int ans=0;
+    stringstream temp(str);
+    string word;
+    while(temp >> word) ans++;
+    return ans;
+}
+int con_ang2int(string ang){
+    if (ang == "S") return 8;
+    if (ang == "P") return 1;
+    if (ang == "D") return 2;
+    if (ang == "F") return 3;
+    if (ang == "G") return 4;
+    if (ang == "H") return 5;
+    if (ang == "I") return 6;
+    return 0;
+}
+string con_Z2atom(int atom){
+    if (atom == 1 ) return "H";
+    if (atom == 8 ) return "O";
+    return "";
+
+}
+bool is_number(const string& s){
+    string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
