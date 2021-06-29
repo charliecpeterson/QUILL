@@ -18,6 +18,7 @@ Required:
 ```
 mkdir build ; cd build
 cmake ..
+make
 ```
 
 ## Data
