@@ -1,6 +1,6 @@
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 find_package (PythonInterp 3 REQUIRED)
-find_package (pythonLibs 3 REQUIRED)
+find_package (PythonLibs 3 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories("${EIGEN3_INCLUDE_DIR}")
 add_executable(${PROJECT_NAME}.x quill.cpp)

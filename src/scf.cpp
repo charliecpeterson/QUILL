@@ -7,6 +7,7 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <iomanip>
 using namespace std;
 using namespace Eigen;
 using std::sqrt;

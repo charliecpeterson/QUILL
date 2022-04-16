@@ -36,7 +36,7 @@ void create_int(){
 		basis_string.append(newline); basis_string.append("\n");
 	}
 
-	string run_string ="python python_run.py";
+	string run_string ="python3 python_run.py";
 	ofstream python_run("python_run.py");
 	python_run << "import pyscf" << endl;
 	python_run << "from pyscf import gto, scf" << endl;
