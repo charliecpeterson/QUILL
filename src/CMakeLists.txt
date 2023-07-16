@@ -10,3 +10,8 @@ add_library(geo geo.cpp)
 add_library(int int.cpp)
 add_library(scf scf.cpp)
 target_link_libraries(${PROJECT_NAME}.x ${EIGEN3_LIBRARIES} ${PYTHON_LIBRARIES} inp geo int scf)
+
+# These are the new install commands:
+install(TARGETS ${PROJECT_NAME}.x DESTINATION bin)
+install(TARGETS inp geo int scf DESTINATION lib)
+
